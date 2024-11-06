@@ -18,14 +18,15 @@ export async function GET(request: Request) {
     }
 
     const API_KEY = "DledgRvCFAm2%3DBohKYGRfrzzl06z1bKP1jRdjXn%2Fuds%3D";
-    const apiUrl = `https://www.localdata.go.kr/platform/rest/TO0/openDataApi?authKey=${API_KEY}&localCode=${localCode}&pageIndex=1&pageSize=10`;
+    const apiUrl = `https://www.localdata.go.kr/platform/rest/TO0/openDataApi?authKey=${API_KEY}&localCode=${localCode}&pageIndex=1&pageSize=10&type=xml`;
 
     console.log("[API] Requesting URL:", apiUrl);
 
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
-        Accept: "*/*",
+        Accept: "application/xml",
+        "Content-Type": "application/xml",
       },
     });
 
@@ -36,6 +37,13 @@ export async function GET(request: Request) {
     }
 
     const data = await response.text();
+    console.log("[API] Response preview:", data.substring(0, 200));
+
+    // XML 형식 확인
+    if (!data.includes("<?xml")) {
+      console.error("[API] Invalid response format:", data);
+      throw new Error("Invalid XML response");
+    }
 
     return new NextResponse(data, {
       status: 200,
