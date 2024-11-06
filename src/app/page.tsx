@@ -47,21 +47,17 @@ export default function HomePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("[Frontend] API error response:", errorData);
-        throw new Error(
-          errorData.details || `API 호출 실패: ${response.status}`
-        );
+        console.error("[Frontend] API error:", errorData);
+        throw new Error(errorData.details || "API 호출 실패");
       }
 
       const xmlText = await response.text();
       console.log("[Frontend] Received XML length:", xmlText.length);
 
-      // XML 파싱
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-
-      // 결과 추출
       const rows = xmlDoc.querySelectorAll("row");
+
       const resultsArray = Array.from(rows).map((row) => ({
         rowNum: row.querySelector("rowNum")?.textContent || "",
         bplcNm: row.querySelector("bplcNm")?.textContent || "",
@@ -74,7 +70,7 @@ export default function HomePage() {
       }));
 
       setSearchResults(resultsArray);
-    } catch (err: unknown) {
+    } catch (err) {
       console.error("[Frontend] Error details:", err);
       setError(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
