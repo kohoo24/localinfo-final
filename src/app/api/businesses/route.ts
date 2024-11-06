@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // 공공데이터포털 API URL 구성
     const apiUrl = new URL(
-      "http://www.localdata.go.kr/platform/rest/TO0/openDataApi"
+      "https://www.localdata.go.kr/platform/rest/TO0/openDataApi"
     );
 
     // 필수 파라미터 추가
@@ -34,7 +34,12 @@ export async function GET(request: NextRequest) {
 
     console.log("[API] Calling external API:", apiUrl.toString());
 
-    const response = await fetch(apiUrl.toString());
+    const response = await fetch(apiUrl.toString(), {
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
     console.log("[API] External API response status:", response.status);
 
     if (!response.ok) {
