@@ -25,11 +25,6 @@ export default function HomePage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   const handleSearch = async () => {
-    if (!selectedCity || !selectedDistrict) {
-      alert("지역을 선택해주세요.");
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
@@ -42,16 +37,32 @@ export default function HomePage() {
         throw new Error("지역 코드를 찾을 수 없습니다.");
       }
 
-      const response = await fetch(`/api/businesses?localCode=${districtCode}`);
+      console.log("[Client] Requesting with code:", districtCode);
+
+      const response = await fetch(
+        `http://localhost:4000/api/businesses?localCode=${districtCode}`
+      );
 
       if (!response.ok) {
-        throw new Error("API 호출 실패");
+        const errorData = await response.json();
+        throw new Error(errorData.details || "API 호출 실패");
       }
 
       const xmlText = await response.text();
+      console.log("[Client] Received XML:", xmlText.substring(0, 200));
+
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+      // XML 파싱 에러 체크
+      const parserError = xmlDoc.querySelector("parsererror");
+      if (parserError) {
+        console.error("[Client] XML parsing error:", parserError.textContent);
+        throw new Error("XML 파싱 오류");
+      }
+
       const rows = xmlDoc.querySelectorAll("row");
+      console.log("[Client] Found rows:", rows.length);
 
       const resultsArray = Array.from(rows).map((row) => ({
         rowNum: row.querySelector("rowNum")?.textContent || "",
@@ -64,9 +75,10 @@ export default function HomePage() {
         uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
       }));
 
+      console.log("[Client] Processed results:", resultsArray);
       setSearchResults(resultsArray);
     } catch (err) {
-      console.error("Error:", err);
+      console.error("[Client] Error:", err);
       setError(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
       );
