@@ -53,22 +53,43 @@ export default function HomePage() {
 
       const xmlText = await response.text();
       console.log("[Frontend] Received XML length:", xmlText.length);
+      console.log("[Frontend] XML content preview:", xmlText.substring(0, 200));
 
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+      const parserError = xmlDoc.querySelector("parsererror");
+      if (parserError) {
+        console.error("[Frontend] XML parsing error:", parserError.textContent);
+        throw new Error("XML 파싱 오류가 발생했습니다.");
+      }
+
       const rows = xmlDoc.querySelectorAll("row");
+      console.log("[Frontend] Found rows:", rows.length);
 
-      const resultsArray = Array.from(rows).map((row) => ({
-        rowNum: row.querySelector("rowNum")?.textContent || "",
-        bplcNm: row.querySelector("bplcNm")?.textContent || "",
-        siteWhlAddr: row.querySelector("siteWhlAddr")?.textContent || "",
-        rdnWhlAddr: row.querySelector("rdnWhlAddr")?.textContent || "",
-        trdStateNm: row.querySelector("trdStateNm")?.textContent || "",
-        siteTel: row.querySelector("siteTel")?.textContent || "",
-        lastModTs: row.querySelector("lastModTs")?.textContent || "",
-        uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
-      }));
+      if (rows.length === 0) {
+        console.log(
+          "[Frontend] XML structure:",
+          xmlDoc.documentElement.innerHTML
+        );
+      }
 
+      const resultsArray = Array.from(rows).map((row) => {
+        const result = {
+          rowNum: row.querySelector("rowNum")?.textContent || "",
+          bplcNm: row.querySelector("bplcNm")?.textContent || "",
+          siteWhlAddr: row.querySelector("siteWhlAddr")?.textContent || "",
+          rdnWhlAddr: row.querySelector("rdnWhlAddr")?.textContent || "",
+          trdStateNm: row.querySelector("trdStateNm")?.textContent || "",
+          siteTel: row.querySelector("siteTel")?.textContent || "",
+          lastModTs: row.querySelector("lastModTs")?.textContent || "",
+          uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
+        };
+        console.log("[Frontend] Processed row:", result);
+        return result;
+      });
+
+      console.log("[Frontend] Final results:", resultsArray);
       setSearchResults(resultsArray);
     } catch (err) {
       console.error("[Frontend] Error details:", err);
