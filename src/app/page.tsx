@@ -48,12 +48,21 @@ export default function HomePage() {
         throw new Error("지역 코드를 찾을 수 없습니다.");
       }
 
-      const params = new URLSearchParams({
-        localCode: districtCode,
-      });
+      // 공공데이터포털 API 직접 호출
+      const apiUrl = new URL(
+        "https://www.localdata.go.kr/platform/rest/TO0/openDataApi"
+      );
+      apiUrl.searchParams.append(
+        "authKey",
+        "DledgRvCFAm2%3DBohKYGRfrzzl06z1bKP1jRdjXn%2Fuds%3D"
+      );
+      apiUrl.searchParams.append("localCode", districtCode);
+      apiUrl.searchParams.append("pageIndex", "1");
+      apiUrl.searchParams.append("pageSize", "10");
 
-      const response = await fetch(`/api/businesses?${params.toString()}`);
+      console.log("[Frontend] Calling API:", apiUrl.toString());
 
+      const response = await fetch(apiUrl.toString());
       console.log("[Frontend] API response status:", response.status);
 
       if (!response.ok) {
