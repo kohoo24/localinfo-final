@@ -17,50 +17,68 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const apiUrl = new URL(BASE_URL);
-    apiUrl.searchParams.append("authKey", API_KEY);
-    apiUrl.searchParams.append("localCode", localCode);
-    apiUrl.searchParams.append("pageIndex", "1");
-    apiUrl.searchParams.append("pageSize", "10");
+    // URL 구성
+    const apiUrl = `${BASE_URL}?authKey=${API_KEY}&localCode=${localCode}&pageIndex=1&pageSize=10`;
+    console.log("[API] Requesting URL:", apiUrl);
 
-    console.log("[API] Requesting URL:", apiUrl.toString());
+    try {
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Accept: "*/*",
+          "Content-Type": "application/xml",
+        },
+      });
 
-    const response = await fetch(apiUrl.toString(), {
-      method: "GET",
-      headers: {
-        Accept: "*/*",
-      },
-    });
+      console.log("[API] External API response status:", response.status);
 
-    console.log("[API] External API response status:", response.status);
+      if (!response.ok) {
+        throw new Error(
+          `External API error: ${response.status} ${response.statusText}`
+        );
+      }
 
-    if (!response.ok) {
-      throw new Error(`External API error: ${response.status}`);
+      const xmlText = await response.text();
+      console.log("[API] Response received:", xmlText.substring(0, 200));
+
+      // XML 응답이 유효한지 확인
+      if (!xmlText.includes("<?xml")) {
+        throw new Error("Invalid XML response");
+      }
+
+      return new NextResponse(xmlText, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xml",
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+    } catch (fetchError) {
+      console.error("[API] Fetch error:", fetchError);
+      throw new Error(`API 호출 실패: ${fetchError.message}`);
     }
-
-    const xmlText = await response.text();
-    console.log("[API] Response received, length:", xmlText.length);
-
-    return new NextResponse(xmlText, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/xml",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
   } catch (error: unknown) {
     console.error("[API] Error:", error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("[API] Error details:", {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return NextResponse.json(
       {
         error: "서버 오류가 발생했습니다.",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
         type: "known",
       },
       {
         status: 500,
         headers: {
           "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
         },
       }
     );
