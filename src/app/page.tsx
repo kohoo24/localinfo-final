@@ -43,12 +43,18 @@ export default function HomePage() {
       }
 
       const response = await fetch(`/api/businesses?localCode=${districtCode}`);
+      console.log("[Frontend] API response status:", response.status);
 
       if (!response.ok) {
-        throw new Error(`API 호출 실패: ${response.status}`);
+        const errorData = await response.json();
+        console.error("[Frontend] API error response:", errorData);
+        throw new Error(
+          errorData.details || `API 호출 실패: ${response.status}`
+        );
       }
 
       const xmlText = await response.text();
+      console.log("[Frontend] Received XML length:", xmlText.length);
 
       // XML 파싱
       const parser = new DOMParser();
