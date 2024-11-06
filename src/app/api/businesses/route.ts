@@ -17,17 +17,20 @@ export async function GET(request: Request) {
       );
     }
 
-    const API_KEY = "DledgRvCFAm2%3DBohKYGRfrzzl06z1bKP1jRdjXn%2Fuds%3D";
-    const apiUrl = `https://www.localdata.go.kr/platform/rest/TO0/openDataApi?authKey=${API_KEY}&localCode=${localCode}&pageIndex=1&pageSize=10&type=xml`;
+    // URL 인코딩된 API 키 사용
+    const API_KEY = encodeURIComponent(
+      "DledgRvCFAm2=BohKYGRfrzzl06z1bKP1jRdjXn/uds="
+    );
+    const apiUrl = `https://www.localdata.go.kr/platform/rest/TO0/openDataApi?authKey=${API_KEY}&localCode=${localCode}&pageIndex=1&pageSize=10`;
 
     console.log("[API] Requesting URL:", apiUrl);
 
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
-        Accept: "application/xml",
-        "Content-Type": "application/xml",
+        Accept: "*/*",
       },
+      cache: "no-store",
     });
 
     console.log("[API] External API response status:", response.status);
@@ -37,23 +40,25 @@ export async function GET(request: Request) {
     }
 
     const data = await response.text();
-    console.log("[API] Response preview:", data.substring(0, 200));
+    console.log("[API] Response received:", {
+      length: data.length,
+      preview: data.substring(0, 200),
+    });
 
-    // XML 형식 확인
-    if (!data.includes("<?xml")) {
-      console.error("[API] Invalid response format:", data);
-      throw new Error("Invalid XML response");
-    }
-
+    // 응답을 그대로 클라이언트에 전달
     return new NextResponse(data, {
       status: 200,
       headers: {
-        "Content-Type": "application/xml",
+        "Content-Type": "text/xml",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
   } catch (error) {
-    console.error("[API] Error:", error);
+    console.error("[API] Error:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return NextResponse.json(
       {
@@ -61,7 +66,13 @@ export async function GET(request: Request) {
         details: error instanceof Error ? error.message : "Unknown error",
         type: "server_error",
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      }
     );
   }
 }
