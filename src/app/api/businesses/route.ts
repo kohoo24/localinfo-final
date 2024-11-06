@@ -17,39 +17,54 @@ export async function GET(request: Request) {
       );
     }
 
-    // URL 인코딩된 API 키 사용
-    const API_KEY = encodeURIComponent(
-      "DledgRvCFAm2=BohKYGRfrzzl06z1bKP1jRdjXn/uds="
-    );
-    const apiUrl = `https://www.localdata.go.kr/platform/rest/TO0/openDataApi?authKey=${API_KEY}&localCode=${localCode}&pageIndex=1&pageSize=10`;
+    // API 키에서 특수문자 처리
+    const API_KEY = "DledgRvCFAm2=BohKYGRfrzzl06z1bKP1jRdjXn/uds=";
+
+    // URL 구성 시 모든 파라미터 인코딩
+    const params = new URLSearchParams({
+      authKey: API_KEY,
+      localCode: localCode,
+      pageIndex: "1",
+      pageSize: "10",
+      resultType: "xml", // XML 형식 명시
+    });
+
+    const apiUrl = `https://www.localdata.go.kr/platform/rest/TO0/openDataApi?${params.toString()}`;
 
     console.log("[API] Requesting URL:", apiUrl);
 
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
-        Accept: "*/*",
+        Accept: "application/xml",
+        "Content-Type": "application/xml",
       },
-      cache: "no-store",
     });
 
     console.log("[API] External API response status:", response.status);
+    console.log(
+      "[API] External API response headers:",
+      Object.fromEntries(response.headers.entries())
+    );
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[API] Error response:", errorText);
       throw new Error(`External API error: ${response.status}`);
     }
 
     const data = await response.text();
-    console.log("[API] Response received:", {
-      length: data.length,
-      preview: data.substring(0, 200),
-    });
+    console.log("[API] Response preview:", data.substring(0, 200));
 
-    // 응답을 그대로 클라이언트에 전달
+    // 응답이 HTML인지 확인
+    if (data.trim().toLowerCase().startsWith("<!doctype html>")) {
+      throw new Error("Received HTML instead of XML");
+    }
+
     return new NextResponse(data, {
       status: 200,
       headers: {
-        "Content-Type": "text/xml",
+        "Content-Type": "application/xml",
         "Access-Control-Allow-Origin": "*",
         "Cache-Control": "no-cache, no-store, must-revalidate",
       },
