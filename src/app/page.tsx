@@ -55,7 +55,14 @@ export default function HomePage() {
       const url = `/api/businesses?${params.toString()}`;
       console.log("[Frontend] Calling API:", url);
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/xml",
+          "Cache-Control": "no-cache",
+        },
+      });
+
       console.log("[Frontend] API response status:", response.status);
 
       if (!response.ok) {
@@ -64,13 +71,15 @@ export default function HomePage() {
         throw new Error(errorData.message || "검색 중 오류가 발생했습니다.");
       }
 
-      const data = await response.json();
-      console.log("[Frontend] Raw API response:", data);
+      const xmlText = await response.text();
+      console.log("[Frontend] Raw XML response:", xmlText);
 
+      // XML 파싱
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(data.result, "text/xml");
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       console.log("[Frontend] Parsed XML:", xmlDoc);
 
+      // 결과 추출
       const rows = xmlDoc.querySelectorAll("row");
       console.log("[Frontend] Found rows:", rows.length);
 
@@ -88,15 +97,10 @@ export default function HomePage() {
       console.log("[Frontend] Processed results:", resultsArray);
       setSearchResults(resultsArray);
     } catch (err: unknown) {
+      console.error("[Frontend] Error details:", err);
       if (err instanceof Error) {
-        console.error("[Frontend] Error details:", {
-          name: err.name,
-          message: err.message,
-          stack: err.stack,
-        });
         setError(err.message);
       } else {
-        console.error("[Frontend] Unknown error:", err);
         setError("알 수 없는 오류가 발생했습니다.");
       }
       setSearchResults([]);

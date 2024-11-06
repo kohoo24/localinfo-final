@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const API_KEY = "DledgRvCFAm2%3DBohKYGRfrzzl06z1bKP1jRdjXn%2Fuds%3D";
+const BASE_URL = "https://www.localdata.go.kr/platform/rest/TO0/openDataApi";
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const localCode = searchParams.get("localCode");
+
+    console.log("[API] Request received:", { localCode });
 
     if (!localCode) {
       return NextResponse.json(
@@ -12,19 +17,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-    const baseUrl = process.env.API_BASE_URL;
-
-    if (!apiKey || !baseUrl) {
-      console.error("[API] Missing environment variables:", {
-        apiKey,
-        baseUrl,
-      });
-      throw new Error("API 설정이 올바르지 않습니다.");
-    }
-
-    const apiUrl = new URL(baseUrl);
-    apiUrl.searchParams.append("authKey", apiKey);
+    const apiUrl = new URL(BASE_URL);
+    apiUrl.searchParams.append("authKey", API_KEY);
     apiUrl.searchParams.append("localCode", localCode);
     apiUrl.searchParams.append("pageIndex", "1");
     apiUrl.searchParams.append("pageSize", "10");
@@ -36,14 +30,11 @@ export async function GET(request: NextRequest) {
       headers: {
         Accept: "*/*",
       },
-      next: { revalidate: 0 },
     });
 
+    console.log("[API] External API response status:", response.status);
+
     if (!response.ok) {
-      console.error("[API] External API error:", {
-        status: response.status,
-        statusText: response.statusText,
-      });
       throw new Error(`External API error: ${response.status}`);
     }
 
@@ -58,7 +49,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    console.error("[API] Error details:", error);
+    console.error("[API] Error:", error);
 
     return NextResponse.json(
       {
