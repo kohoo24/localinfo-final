@@ -42,26 +42,16 @@ export default function HomePage() {
         throw new Error("지역 코드를 찾을 수 없습니다.");
       }
 
-      const apiKey = encodeURIComponent(process.env.NEXT_PUBLIC_API_KEY || "");
-      const baseUrl =
-        "https://www.localdata.go.kr/platform/rest/TO0/openDataApi";
-
       const params = new URLSearchParams({
-        authKey: apiKey,
         localCode: districtCode,
-        pageIndex: "1",
-        pageSize: "10",
-        type: "json",
       });
 
-      const url = `${baseUrl}?${params.toString()}`;
-      console.log("[Frontend] Requesting URL:", url);
-
-      const response = await fetch(url);
+      const response = await fetch(`/api/businesses?${params.toString()}`);
       console.log("[Frontend] API response status:", response.status);
 
       if (!response.ok) {
-        throw new Error(`API 호출 실패: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.details || "API 호출 실패");
       }
 
       const data = await response.json();
