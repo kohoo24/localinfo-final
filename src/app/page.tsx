@@ -17,13 +17,6 @@ interface SearchResult {
   uptaeNm: string;
 }
 
-// window 인터페이스 확장
-declare global {
-  interface Window {
-    [key: string]: any;
-  }
-}
-
 export default function HomePage() {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
@@ -49,47 +42,7 @@ export default function HomePage() {
         throw new Error("지역 코드를 찾을 수 없습니다.");
       }
 
-      // JSONP 방식으로 API 호출
-      const script = document.createElement("script");
-      const callbackName = `jsonpCallback${Date.now()}`;
-
-      window[callbackName] = (data: string) => {
-        try {
-          console.log("[Frontend] API response:", data);
-
-          // XML 문자열을 파싱
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(data, "text/xml");
-
-          // 결과 추출
-          const rows = xmlDoc.querySelectorAll("row");
-          console.log("[Frontend] Found rows:", rows.length);
-
-          const resultsArray = Array.from(rows).map((row) => ({
-            rowNum: row.querySelector("rowNum")?.textContent || "",
-            bplcNm: row.querySelector("bplcNm")?.textContent || "",
-            siteWhlAddr: row.querySelector("siteWhlAddr")?.textContent || "",
-            rdnWhlAddr: row.querySelector("rdnWhlAddr")?.textContent || "",
-            trdStateNm: row.querySelector("trdStateNm")?.textContent || "",
-            siteTel: row.querySelector("siteTel")?.textContent || "",
-            lastModTs: row.querySelector("lastModTs")?.textContent || "",
-            uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
-          }));
-
-          setSearchResults(resultsArray);
-          setIsLoading(false);
-
-          // 콜백 함수 제거
-          delete window[callbackName];
-          document.body.removeChild(script);
-        } catch (err) {
-          console.error("[Frontend] Parse error:", err);
-          setError("데이터 처리 중 오류가 발생했습니다.");
-          setIsLoading(false);
-        }
-      };
-
-      // API URL 구성
+      // API URL 직접 구성
       const apiUrl = new URL(
         "https://www.localdata.go.kr/platform/rest/TO0/openDataApi"
       );
@@ -100,26 +53,47 @@ export default function HomePage() {
       apiUrl.searchParams.append("localCode", districtCode);
       apiUrl.searchParams.append("pageIndex", "1");
       apiUrl.searchParams.append("pageSize", "10");
-      apiUrl.searchParams.append("callback", callbackName);
 
-      script.src = apiUrl.toString();
-      document.body.appendChild(script);
+      console.log("[Frontend] Calling API:", apiUrl.toString());
 
-      // 타임아웃 설정
-      setTimeout(() => {
-        if (window[callbackName]) {
-          delete window[callbackName];
-          document.body.removeChild(script);
-          setError("API 호출 시간이 초과되었습니다.");
-          setIsLoading(false);
-        }
-      }, 10000);
+      const response = await fetch(apiUrl.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/xml",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API 호출 실패: ${response.status}`);
+      }
+
+      const xmlText = await response.text();
+
+      // XML 파싱
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+      // 결과 추출
+      const rows = xmlDoc.querySelectorAll("row");
+      const resultsArray = Array.from(rows).map((row) => ({
+        rowNum: row.querySelector("rowNum")?.textContent || "",
+        bplcNm: row.querySelector("bplcNm")?.textContent || "",
+        siteWhlAddr: row.querySelector("siteWhlAddr")?.textContent || "",
+        rdnWhlAddr: row.querySelector("rdnWhlAddr")?.textContent || "",
+        trdStateNm: row.querySelector("trdStateNm")?.textContent || "",
+        siteTel: row.querySelector("siteTel")?.textContent || "",
+        lastModTs: row.querySelector("lastModTs")?.textContent || "",
+        uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
+      }));
+
+      setSearchResults(resultsArray);
     } catch (err: unknown) {
       console.error("[Frontend] Error details:", err);
       setError(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
       );
       setSearchResults([]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -262,4 +236,3 @@ export default function HomePage() {
     </main>
   );
 }
-
