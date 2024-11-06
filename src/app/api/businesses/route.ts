@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 공공데이터포털 API URL 구성
+    // HTTPS URL 사용 및 인코딩된 API 키 사용
     const apiUrl = new URL(
       "https://www.localdata.go.kr/platform/rest/TO0/openDataApi"
     );
@@ -32,42 +32,40 @@ export async function GET(request: NextRequest) {
     apiUrl.searchParams.append("pageIndex", "1");
     apiUrl.searchParams.append("pageSize", "10");
 
-    console.log("[API] Calling external API:", apiUrl.toString());
+    console.log("[API] Requesting URL:", apiUrl.toString());
 
     const response = await fetch(apiUrl.toString(), {
+      method: "GET",
       headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
+        Accept: "*/*",
+        "Cache-Control": "no-cache",
       },
+      cache: "no-store",
+      next: { revalidate: 0 },
     });
+
     console.log("[API] External API response status:", response.status);
 
     if (!response.ok) {
-      console.error("[API] External API error:", {
-        status: response.status,
-        statusText: response.statusText,
-      });
       throw new Error(
-        `외부 API 호출 실패: ${response.status} ${response.statusText}`
+        `External API error: ${response.status} ${response.statusText}`
       );
     }
 
-    const data = await response.text();
-    console.log("[API] External API response:", data);
+    const xmlText = await response.text();
+    console.log("[API] Raw XML Response:", xmlText);
 
-    // XML 응답을 JSON으로 변환
-    return NextResponse.json({
-      result: data,
-      requestUrl: apiUrl.toString(),
-      responseStatus: response.status,
+    return new NextResponse(xmlText, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/xml",
+        "Cache-Control": "no-cache",
+      },
     });
   } catch (error: unknown) {
+    console.error("[API] Error:", error);
+
     if (error instanceof Error) {
-      console.error("[API] Error details:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      });
       return NextResponse.json(
         {
           error: "서버 오류가 발생했습니다.",
@@ -77,6 +75,7 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
+
     return NextResponse.json(
       {
         error: "알 수 없는 오류가 발생했습니다.",
