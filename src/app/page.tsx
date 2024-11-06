@@ -39,8 +39,10 @@ export default function HomePage() {
 
       console.log("[Client] Requesting with code:", districtCode);
 
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const response = await fetch(
-        `http://localhost:4000/api/businesses?localCode=${districtCode}`
+        `${API_URL}/api/businesses?localCode=${districtCode}`
       );
 
       if (!response.ok) {
