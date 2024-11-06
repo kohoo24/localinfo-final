@@ -54,9 +54,13 @@ export async function GET(request: NextRequest) {
           "Cache-Control": "no-cache, no-store, must-revalidate",
         },
       });
-    } catch (fetchError) {
+    } catch (fetchError: unknown) {
       console.error("[API] Fetch error:", fetchError);
-      throw new Error(`API 호출 실패: ${fetchError.message}`);
+      throw new Error(
+        `API 호출 실패: ${
+          fetchError instanceof Error ? fetchError.message : "알 수 없는 오류"
+        }`
+      );
     }
   } catch (error: unknown) {
     console.error("[API] Error:", error);
