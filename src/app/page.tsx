@@ -42,37 +42,31 @@ export default function HomePage() {
         throw new Error("지역 코드를 찾을 수 없습니다.");
       }
 
-      const params = new URLSearchParams({
-        localCode: districtCode,
-      });
-
-      const response = await fetch(`/api/businesses?${params.toString()}`);
-      console.log("[Frontend] API response status:", response.status);
+      const response = await fetch(`/api/businesses?localCode=${districtCode}`);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || "API 호출 실패");
+        throw new Error("API 호출 실패");
       }
 
-      const data = await response.json();
-      console.log("[Frontend] API response:", data);
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const rows = xmlDoc.querySelectorAll("row");
 
-      const rows = data.result?.body?.rows?.row || [];
-      const resultsArray = (Array.isArray(rows) ? rows : [rows]).map((row) => ({
-        rowNum: row.rowNum || "",
-        bplcNm: row.bplcNm || "",
-        siteWhlAddr: row.siteWhlAddr || "",
-        rdnWhlAddr: row.rdnWhlAddr || "",
-        trdStateNm: row.trdStateNm || "",
-        siteTel: row.siteTel || "",
-        lastModTs: row.lastModTs || "",
-        uptaeNm: row.uptaeNm || "",
+      const resultsArray = Array.from(rows).map((row) => ({
+        rowNum: row.querySelector("rowNum")?.textContent || "",
+        bplcNm: row.querySelector("bplcNm")?.textContent || "",
+        siteWhlAddr: row.querySelector("siteWhlAddr")?.textContent || "",
+        rdnWhlAddr: row.querySelector("rdnWhlAddr")?.textContent || "",
+        trdStateNm: row.querySelector("trdStateNm")?.textContent || "",
+        siteTel: row.querySelector("siteTel")?.textContent || "",
+        lastModTs: row.querySelector("lastModTs")?.textContent || "",
+        uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
       }));
 
-      console.log("[Frontend] Processed results:", resultsArray);
       setSearchResults(resultsArray);
     } catch (err) {
-      console.error("[Frontend] Error:", err);
+      console.error("Error:", err);
       setError(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
       );
