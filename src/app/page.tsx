@@ -52,32 +52,20 @@ export default function HomePage() {
         localCode: districtCode,
       });
 
-      const url = `/api/businesses?${params.toString()}`;
-      console.log("[Frontend] Calling API:", url);
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Accept: "application/xml",
-          "Cache-Control": "no-cache",
-        },
-      });
+      const response = await fetch(`/api/businesses?${params.toString()}`);
 
       console.log("[Frontend] API response status:", response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("[Frontend] API error:", errorData);
-        throw new Error(errorData.message || "검색 중 오류가 발생했습니다.");
+        throw new Error(`API 호출 실패: ${response.status}`);
       }
 
       const xmlText = await response.text();
-      console.log("[Frontend] Raw XML response:", xmlText);
+      console.log("[Frontend] Raw XML response:", xmlText.substring(0, 200));
 
       // XML 파싱
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      console.log("[Frontend] Parsed XML:", xmlDoc);
 
       // 결과 추출
       const rows = xmlDoc.querySelectorAll("row");
