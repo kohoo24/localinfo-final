@@ -42,57 +42,47 @@ export default function HomePage() {
         throw new Error("지역 코드를 찾을 수 없습니다.");
       }
 
-      const response = await fetch(`/api/businesses?localCode=${districtCode}`);
+      const apiKey = encodeURIComponent(process.env.NEXT_PUBLIC_API_KEY || "");
+      const baseUrl =
+        "https://www.localdata.go.kr/platform/rest/TO0/openDataApi";
+
+      const params = new URLSearchParams({
+        authKey: apiKey,
+        localCode: districtCode,
+        pageIndex: "1",
+        pageSize: "10",
+        type: "json",
+      });
+
+      const url = `${baseUrl}?${params.toString()}`;
+      console.log("[Frontend] Requesting URL:", url);
+
+      const response = await fetch(url);
       console.log("[Frontend] API response status:", response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("[Frontend] API error:", errorData);
-        throw new Error(errorData.details || "API 호출 실패");
+        throw new Error(`API 호출 실패: ${response.status}`);
       }
 
-      const xmlText = await response.text();
-      console.log("[Frontend] Received XML length:", xmlText.length);
-      console.log("[Frontend] XML content preview:", xmlText.substring(0, 200));
+      const data = await response.json();
+      console.log("[Frontend] API response:", data);
 
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const rows = data.result?.body?.rows?.row || [];
+      const resultsArray = (Array.isArray(rows) ? rows : [rows]).map((row) => ({
+        rowNum: row.rowNum || "",
+        bplcNm: row.bplcNm || "",
+        siteWhlAddr: row.siteWhlAddr || "",
+        rdnWhlAddr: row.rdnWhlAddr || "",
+        trdStateNm: row.trdStateNm || "",
+        siteTel: row.siteTel || "",
+        lastModTs: row.lastModTs || "",
+        uptaeNm: row.uptaeNm || "",
+      }));
 
-      const parserError = xmlDoc.querySelector("parsererror");
-      if (parserError) {
-        console.error("[Frontend] XML parsing error:", parserError.textContent);
-        throw new Error("XML 파싱 오류가 발생했습니다.");
-      }
-
-      const rows = xmlDoc.querySelectorAll("row");
-      console.log("[Frontend] Found rows:", rows.length);
-
-      if (rows.length === 0) {
-        console.log(
-          "[Frontend] XML structure:",
-          xmlDoc.documentElement.innerHTML
-        );
-      }
-
-      const resultsArray = Array.from(rows).map((row) => {
-        const result = {
-          rowNum: row.querySelector("rowNum")?.textContent || "",
-          bplcNm: row.querySelector("bplcNm")?.textContent || "",
-          siteWhlAddr: row.querySelector("siteWhlAddr")?.textContent || "",
-          rdnWhlAddr: row.querySelector("rdnWhlAddr")?.textContent || "",
-          trdStateNm: row.querySelector("trdStateNm")?.textContent || "",
-          siteTel: row.querySelector("siteTel")?.textContent || "",
-          lastModTs: row.querySelector("lastModTs")?.textContent || "",
-          uptaeNm: row.querySelector("uptaeNm")?.textContent || "",
-        };
-        console.log("[Frontend] Processed row:", result);
-        return result;
-      });
-
-      console.log("[Frontend] Final results:", resultsArray);
+      console.log("[Frontend] Processed results:", resultsArray);
       setSearchResults(resultsArray);
     } catch (err) {
-      console.error("[Frontend] Error details:", err);
+      console.error("[Frontend] Error:", err);
       setError(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
       );
